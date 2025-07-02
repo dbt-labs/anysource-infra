@@ -3,6 +3,7 @@
 variable "region" {
   type        = string
   description = "AWS region"
+  default = "us-east-1"
 }
 
 variable "profile" {
@@ -24,6 +25,7 @@ variable "environment" {
     condition     = contains(["production", "staging", "development"], var.environment)
     error_message = "Environment must be one of: production, staging, development"
   }
+  default = "development"
 }
 
 variable "domain_name" {
@@ -34,10 +36,12 @@ variable "domain_name" {
 variable "first_superuser" {
   type        = string
   description = "Email address for the first superuser account (typically your company admin email)"
+  default = "taylor.brudos@dbtlabs.com"
 }
 
 variable "account" {
   type = string
+  default = "783634644742"
 }
 
 # VPC Configuration with Smart Defaults
