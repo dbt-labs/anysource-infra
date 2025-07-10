@@ -1,7 +1,6 @@
 
 provider "aws" {
   region  = var.region
-  profile = var.profile
 }
 
 terraform {
@@ -12,11 +11,11 @@ terraform {
     }
   }
 
-  # optional - if you want terraform state bucket
-  # backend "s3" {
-  #   bucket  = var.terraform_state_bucket
-  #   key     = var.terraform_state_key
-  #   region  = var.region
-  #   profile = var.profile
-  # }
+  backend "s3" {}
+#   backend "s3" {
+#     bucket  = var.terraform_state_bucket
+#     key     = var.terraform_state_key
+#     region  = var.region
+#     profile = var.profile
+# }
 }

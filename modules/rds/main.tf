@@ -2,22 +2,31 @@ locals {
   db_engine   = "aurora"
   environment = var.environment == "eu" ? "eu" : (var.environment == "production" ? "prod" : "stg")
 }
+
+data "aws_secretsmanager_secret" "db_password" {
+  name = var.db_password_secret_name
+}
+
+data "aws_secretsmanager_secret_version" "db_password" {
+  secret_id = data.aws_secretsmanager_secret.db_password.id
+}
+
 resource "aws_rds_cluster" "rds_cluster" {
   cluster_identifier = "${local.db_engine}-${var.project}-${local.environment}-cluster"
   engine             = "${local.db_engine}-postgresql"
   engine_mode        = "provisioned"
   engine_version     = var.engine_version
   availability_zones = var.availability_zones
-  database_name      = "postgres"
-  master_username    = jsondecode(data.aws_secretsmanager_secret_version.secret_credentials.secret_string)["PLATFORM_DB_USERNAME"]
-  master_password    = jsondecode(data.aws_secretsmanager_secret_version.secret_credentials.secret_string)["PLATFORM_DB_PASSWORD"]
+  database_name      = var.name
+  master_username    = var.db_username
+  master_password    = jsondecode(data.aws_secretsmanager_secret_version.db_password.secret_string)["PLATFORM_DB_PASSWORD"]
   storage_encrypted  = true
   serverlessv2_scaling_configuration {
     min_capacity = var.min_capacity
     max_capacity = var.max_capacity
   }
   skip_final_snapshot      = true
-  deletion_protection      = true
+  deletion_protection      = var.deletion_protection
   delete_automated_backups = false
   backup_retention_period  = 10
   vpc_security_group_ids   = [aws_security_group.rds_security_group.id]
@@ -33,7 +42,7 @@ resource "aws_rds_cluster" "rds_cluster" {
   enabled_cloudwatch_logs_exports = ["postgresql"]
 
   lifecycle {
-    ignore_changes = [availability_zones]
+    ignore_changes = [availability_zones, master_password]
   }
 }
 
@@ -58,10 +67,6 @@ resource "aws_rds_cluster_instance" "rds_cluster_instance" {
   availability_zone   = var.availability_zones[0]
 }
 
-data "aws_secretsmanager_secret_version" "secret_credentials" {
-  secret_id = var.secret_arn
-}
-
 resource "aws_security_group" "rds_security_group" {
   name        = "${local.db_engine}-${var.project}-${local.environment}-sg"
   description = "Security group for RDS cluster"
@@ -70,7 +75,7 @@ resource "aws_security_group" "rds_security_group" {
     from_port   = 5432
     to_port     = 5432
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [var.vpc_cidr]
   }
 
   egress {

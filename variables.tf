@@ -45,7 +45,7 @@ variable "account" {
 }
 
 # VPC Configuration with Smart Defaults
-variable "cidr" {
+variable "vpc_cidr" {
   type        = string
   description = "VPC CIDR"
   default     = "10.0.0.0/16"
@@ -136,28 +136,42 @@ variable "services_configurations" {
     memory                            = optional(number, 1024) # Increased default for production
     host_port                         = optional(number, 8000)
     container_port                    = optional(number, 8000)
-    desired_count                     = optional(number, 2)  # Production-ready default
-    max_capacity                      = optional(number, 10) # Allow scaling
+    desired_count                     = optional(number, 2) # Production-ready default
+    max_capacity                      = optional(number, 2) # Allow scaling
     min_capacity                      = optional(number, 2)
     cpu_auto_scalling_target_value    = optional(number, 70)
     memory_auto_scalling_target_value = optional(number, 80)
+    priority                          = optional(number) # Priority for ALB listener rules
     env_vars                          = optional(map(string), {})
     secret_vars                       = optional(map(string), {})
   }))
   default = {
     "backend" = {
+      name              = "backend"
       path_pattern      = ["/api/*"]
       health_check_path = "/api/v1/utils/health-check/"
       container_port    = 8000
       host_port         = 8000
+      port              = 8000
+      priority          = 1
     }
     "frontend" = {
+      name              = "frontend"
       path_pattern      = ["/*"]
       health_check_path = "/"
       container_port    = 80
       host_port         = 80
+      priority          = 2
     }
   }
+}
+
+# HuggingFace Configuration
+variable "hf_token" {
+  type        = string
+  description = "HuggingFace token for downloading models (used by prompt protection)"
+  default     = "" # Must be provided via tfvars or environment variable
+  sensitive   = true
 }
 
 # Optional Global Environment Variables
@@ -186,20 +200,43 @@ variable "buckets_conf_new" {
   default     = {}
 }
 
-# Legacy variables (keeping for backward compatibility)
-variable "rds_conf" {
-  type = map(object({
-    engine_version = optional(string, "16.6")
-    min_capacity   = optional(number, 2)
-    max_capacity   = optional(number, 16)
-    count_replicas = optional(number, 2)
-  }))
-  description = "Legacy RDS configuration (deprecated - use database_config instead)"
-  default     = {}
+# Monitoring and Alerting Configuration
+variable "enable_monitoring" {
+  description = "Enable CloudWatch monitoring and alarms"
+  type        = bool
+  default     = false
 }
+
+variable "enable_chatbot_alerts" {
+  description = "Enable monitoring alerts via AWS Chatbot (much simpler than SNS for enterprise)"
+  type        = bool
+  default     = false
+}
+
+variable "slack_channel_id" {
+  description = "Slack channel ID for alerts (e.g., C1234567890)"
+  type        = string
+  default     = ""
+}
+
+variable "slack_team_id" {
+  description = "Slack team/workspace ID (e.g., T1234567890)"
+  type        = string
+  default     = ""
+}
+
+
+
+# Legacy variables removed - use database_config instead
 
 variable "suffix_secret_hash" {
   type        = string
   description = "Suffix for secret names to ensure uniqueness"
   default     = ""
+}
+
+variable "deletion_protection" {
+  type        = bool
+  description = "Enable deletion protection for RDS clusters"
+  default     = true
 }

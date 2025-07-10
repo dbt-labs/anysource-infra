@@ -11,12 +11,12 @@ variable "region" {
   type = string
 }
 variable "env_vars" {
-  type = map(string)
+  type    = map(string)
   default = {}
 }
 
 variable "secret_vars" {
-  type = map(string)
+  type    = map(string)
   default = {}
 }
 variable "environment" {
@@ -30,6 +30,10 @@ variable "ecs_task_execution_role_arn" {
 }
 
 variable "vpc_id" {
+  type = string
+}
+
+variable "vpc_cidr" {
   type = string
 }
 
